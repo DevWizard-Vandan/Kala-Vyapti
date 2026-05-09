@@ -7,12 +7,14 @@
 ## Project Overview
 
 **Name:** Kala-Vyapti — Automated Options Trading System
+**Repo:** https://github.com/DevWizard-Vandan/Kala-Vyapti
 **Goal:** A fully automated, rule-based algorithmic trading system for Indian markets (NSE/MCX) that eliminates emotional decision-making and executes a predefined strategy with zero discretion.
 
 **Owner:** Vandan (B.Tech AI/ML, VIT Pune)
 **Broker:** Zerodha (live) — Kite Connect API
 **Markets:** Nifty/BankNifty index options (primary), Crude Oil / Gold MCX options (secondary)
 **Exchange timezone:** IST (UTC+5:30), market hours 09:15–15:30
+**Dev OS:** Windows (PowerShell) — use `;` not `&&` for command chaining
 
 ---
 
@@ -120,6 +122,22 @@ Kala-Vyapti/
 
 ---
 
+## Rust Candle Struct (use exactly this across all indicator files)
+
+```rust
+pub struct Candle {
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub volume: f64,
+}
+```
+
+All indicator functions return `Vec<f64>` of the same length as input, NaN-padded at the start for the warmup period.
+
+---
+
 ## AI Contract Selection — Scoring Model
 
 When a BUY signal fires, score all qualifying option contracts and select the top-ranked one.
@@ -221,6 +239,7 @@ PAPER_CAPITAL=500000     # simulated capital for paper trading
 - Logging: use Python `logging` module (not print), structured JSON logs in production
 - Errors: never silently swallow exceptions; log + alert on every unexpected error
 - Tests: pytest for Python, cargo test for Rust; minimum coverage for risk/execution modules = 90%
+- **Windows dev environment:** Use PowerShell syntax, semicolons not `&&` for command chaining
 
 ---
 

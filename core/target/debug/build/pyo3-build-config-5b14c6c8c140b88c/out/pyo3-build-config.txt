@@ -1,10 +1,10 @@
 implementation=CPython
-version=3.10
+version=3.11
 shared=true
 abi3=false
-lib_name=python310
-lib_dir=C:\Users\VANDAN\AppData\Local\Programs\Python\Python310\libs
-executable=C:\Users\VANDAN\AppData\Local\Programs\Python\Python310\python.exe
+lib_name=python311
+lib_dir=C:\Users\VANDAN\AppData\Local\Programs\Python\Python311\libs
+executable=C:\Users\VANDAN\Projects\Kala-Vyapti\.venv\Scripts\python.exe
 pointer_width=64
 build_flags=
 suppress_build_script_link_lines=false

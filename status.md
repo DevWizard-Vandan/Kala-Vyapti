@@ -8,8 +8,8 @@
 
 **Phase:** 1 — Backtester + Signal Engine
 **Week:** 1 of 3
-**Overall progress:** 0% — Project initialized, no code written yet
-**Last updated:** Project start
+**Overall progress:** ~12% — Rust crate scaffolded, PyO3 bindings verified, basic SuperTrend implemented
+**Last updated:** Task 1.7 complete
 
 ---
 
@@ -38,13 +38,13 @@ Output: backtest report showing win rate, avg RR, max drawdown, Sharpe ratio on 
 
 | # | Task | Owner | Status | Notes |
 |---|---|---|---|---|
-| 1.1 | Initialize repo structure (folders, .gitignore, README) | You | ⬜ Todo | |
-| 1.2 | Set up Rust crate `core/` with maturin + PyO3 | Claude Code | ✅ Done | Created Cargo library crate, PyO3 hello_world binding, maturin pyproject, and Python requirements. |
-| 1.3 | Implement `EMA(period)` in Rust | Jules | ⬜ Todo | Delegate to Jules |
-| 1.4 | Implement `ATR(period)` in Rust | Jules | ⬜ Todo | Delegate to Jules |
-| 1.5 | Implement `ADX + DMI(+/-)(period=14)` in Rust | Jules | ⬜ Todo | Delegate to Jules |
-| 1.6 | Implement `MACD(12,26,9)` + histogram in Rust | Jules | ⬜ Todo | Delegate to Jules |
-| 1.7 | Implement basic `SuperTrend(atr, mult)` in Rust | Claude Code | ⬜ Todo | Required before k-means |
+| 1.1 | Initialize repo structure (folders, .gitignore, README) | You | ✅ Done | Repo: github.com/DevWizard-Vandan/Kala-Vyapti |
+| 1.2 | Set up Rust crate `core/` with maturin + PyO3 | Claude Code | ✅ Done | PyO3 0.22, cdylib+rlib, hello_world() binding verified |
+| 1.3 | Implement `EMA(period)` in Rust | Jules | 🔄 In Progress | Jules working |
+| 1.4 | Implement `ATR(period)` in Rust | Jules | 🔄 In Progress | Jules working |
+| 1.5 | Implement `ADX + DMI(+/-)(period=14)` in Rust | Jules | 🔄 In Progress | Jules working |
+| 1.6 | Implement `MACD(12,26,9)` + histogram in Rust | Jules | 🔄 In Progress | Jules working |
+| 1.7 | Implement basic `SuperTrend(atr, mult)` in Rust | Claude Code | ✅ Done | Wilder ATR bands + trend flips, tests passing |
 | 1.8 | Expose all indicators via PyO3 Python bindings | Claude Code | ⬜ Todo | After 1.3–1.7 done |
 | 1.9 | Python validation tests vs TA-Lib reference | You + Copilot | ⬜ Todo | Must match to 4 decimal places |
 
@@ -144,7 +144,11 @@ Requirements:
 
 ## Completed Tasks
 
-- 2026-05-09: Task 1.2 done — scaffolded `core/` Rust library crate with PyO3/maturin, placeholder module folders, `hello_world()` binding, root `pyproject.toml`, and `requirements.txt`.
+| Task | Date | Notes |
+|---|---|---|
+| 1.1 | Phase start | Repo initialized at github.com/DevWizard-Vandan/Kala-Vyapti |
+| 1.2 | Phase start | Rust crate with PyO3 0.22 + maturin. Crate: `kala-vyapti-core`, module: `kala_vyapti_core` |
+| 1.7 | 2026-05-09 | Basic SuperTrend implemented in Rust with hardcoded 30-candle unit test |
 
 ---
 
@@ -177,13 +181,26 @@ Add completed tasks to the Completed Tasks section with date.
 
 ## Next Action (Right Now)
 
-**You:** Create the repo folder structure on your machine.
-**Then:** Paste task 1.2 prompt to Claude Code to scaffold the Rust crate.
-**Simultaneously:** Paste the Jules delegation prompt (Week 1) to Jules.
+**You:** Run `maturin develop` and verify `hello_world()` prints correctly.
+**Then:** Wait for Jules to finish tasks 1.3–1.6. When Jules delivers, paste the code here for review before merging.
+**Simultaneously:** Claude Code can start task 1.7 (basic SuperTrend bands) — give it this prompt:
 
-```bash
-# Run this to create the folder structure
-mkdir -p Kala-Vyapti/{core/src/{indicators,clustering},engine/{data,signals,brain,risk,execution,journal},backtest/reports,dashboard,alerts,infra}
-cd Kala-Vyapti
-git init
+```
+Read agents.md and status.md.
+
+Task 1.7: Implement basic SuperTrend(atr_period, multiplier) in Rust.
+File: core/src/indicators/supertrend.rs
+
+Use the Candle struct defined in agents.md.
+SuperTrend logic:
+- Compute ATR(atr_period) using Wilder's smoothing
+- upper_band = (high + low) / 2 + multiplier * ATR
+- lower_band = (high + low) / 2 - multiplier * ATR
+- trend flips when close crosses a band (standard SuperTrend logic)
+- Return: (trend: Vec<i8>, upper: Vec<f64>, lower: Vec<f64>)
+  where trend = 1 (bullish) or -1 (bearish)
+
+Add unit tests. Export via pub use in indicators/mod.rs.
+Do NOT add PyO3 bindings yet — that comes in task 1.8 after all indicators exist.
+When done, update status.md task 1.7 to Done.
 ```
