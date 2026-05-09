@@ -1,0 +1,14 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "kala-vyapti"
+version = "0.1.0"
+description = "Automated options trading system for Indian markets."
+requires-python = ">=3.11"
+
+[tool.maturin]
+manifest-path = "core/Cargo.toml"
+module-name = "kala_vyapti_core"
+features = ["pyo3/extension-module"]

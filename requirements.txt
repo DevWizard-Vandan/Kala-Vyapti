@@ -1,0 +1,10 @@
+maturin
+kiteconnect
+pandas
+pyarrow
+sqlalchemy
+psycopg2-binary
+streamlit
+python-telegram-bot
+ta-lib
+pytest
