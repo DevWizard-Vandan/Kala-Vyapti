@@ -8,8 +8,8 @@
 
 **Phase:** 1 — Backtester + Signal Engine
 **Week:** 1 of 3
-**Overall progress:** ~18% — Rust crate scaffolded, PyO3 bindings verified, core indicators implemented
-**Last updated:** Tasks 1.3–1.6 complete
+**Overall progress:** ~22% — Rust crate scaffolded, PyO3 indicator bindings verified
+**Last updated:** Task 1.8 complete
 
 ---
 
@@ -45,7 +45,7 @@ Output: backtest report showing win rate, avg RR, max drawdown, Sharpe ratio on 
 | 1.5 | Implement `ADX + DMI(+/-)(period=14)` in Rust | Jules | ✅ Done | Fixed ATR/ADX from Jules PR |
 | 1.6 | Implement `MACD(12,26,9)` + histogram in Rust | Jules | ✅ Done | Fixed ATR/ADX from Jules PR |
 | 1.7 | Implement basic `SuperTrend(atr, mult)` in Rust | Claude Code | ✅ Done | Wilder ATR bands + trend flips, tests passing |
-| 1.8 | Expose all indicators via PyO3 Python bindings | Claude Code | ⬜ Todo | After 1.3–1.7 done |
+| 1.8 | Expose all indicators via PyO3 Python bindings | Claude Code | ✅ Done | PyCandle + py_* wrappers verified with maturin develop |
 | 1.9 | Python validation tests vs TA-Lib reference | You + Copilot | ⬜ Todo | Must match to 4 decimal places |
 
 #### Jules Delegation Prompt (Tasks 1.3–1.6)
@@ -150,6 +150,7 @@ Requirements:
 | 1.2 | Phase start | Rust crate with PyO3 0.22 + maturin. Crate: `kala-vyapti-core`, module: `kala_vyapti_core` |
 | 1.3–1.6 | 2026-05-10 | Fixed ATR/ADX from Jules PR |
 | 1.7 | 2026-05-09 | Basic SuperTrend implemented in Rust with hardcoded 30-candle unit test |
+| 1.8 | 2026-05-10 | Exposed all indicators via PyO3 Python bindings and verified with maturin develop |
 
 ---
 
