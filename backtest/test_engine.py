@@ -1,0 +1,118 @@
+import pytest
+import pandas as pd
+from datetime import date, datetime, timedelta
+from backtest.engine import BacktestEngine, BacktestResult
+from engine.signals.models import Signal
+import pytz
+
+class MockDataLoader:
+    def __init__(self, df):
+        self.df = df
+
+    def get_candles(self, symbol, from_date, to_date, timeframe="15m"):
+        return self.df
+
+class MockSignalEngine:
+    def __init__(self, action_map):
+        self.action_map = action_map
+
+    def evaluate(self, history_df, symbol, timeframe):
+        last_idx = len(history_df) - 1
+        action = self.action_map.get(last_idx, "NONE")
+        return Signal(
+            timestamp=history_df.iloc[-1]['timestamp'],
+            symbol=symbol,
+            action=action,
+            timeframe=timeframe,
+            adx=0.0,
+            dmi_plus=0.0,
+            dmi_minus=0.0,
+            ema_aligned=True,
+            macd_hist=0.0,
+            supertrend_bullish=True,
+            supertrend_ai_bullish=True,
+            confidence=1.0
+        )
+
+def generate_synthetic_data(num_candles=400):
+    start_time = datetime(2023, 1, 1, 9, 15, tzinfo=pytz.timezone('Asia/Kolkata'))
+
+    timestamps = []
+    opens = []
+    highs = []
+    lows = []
+    closes = []
+
+    current_price = 1000.0
+
+    for i in range(num_candles):
+        timestamps.append(start_time + timedelta(minutes=15 * i))
+
+        # Simple trend + reversal
+        if i < 200:
+            # Uptrend
+            open_price = current_price
+            close_price = current_price + 2.0
+            high_price = close_price + 1.0
+            low_price = open_price - 1.0
+        else:
+            # Downtrend
+            open_price = current_price
+            close_price = current_price - 2.0
+            high_price = open_price + 1.0
+            low_price = close_price - 1.0
+
+        opens.append(open_price)
+        highs.append(high_price)
+        lows.append(low_price)
+        closes.append(close_price)
+
+        current_price = close_price
+
+    return pd.DataFrame({
+        'timestamp': timestamps,
+        'open': opens,
+        'high': highs,
+        'low': lows,
+        'close': closes,
+        'volume': [1000] * num_candles
+    })
+
+def test_backtest_engine_basic_run():
+    df = generate_synthetic_data(400)
+    data_loader = MockDataLoader(df)
+
+    # We want to buy at index 10, exit at index 150 (uptrend -> win)
+    # Buy at index 250, exit at index 350 (downtrend -> loss/stop loss)
+    action_map = {
+        10: "BUY",
+        150: "EXIT",
+        250: "BUY",
+        350: "EXIT"
+    }
+    signal_engine = MockSignalEngine(action_map)
+
+    engine = BacktestEngine(data_loader, signal_engine, initial_capital=500000.0)
+
+    result = engine.run("NIFTY 50", date(2023, 1, 1), date(2023, 1, 10))
+
+    assert isinstance(result, BacktestResult)
+    assert result.total_trades == 2
+    assert result.win_rate >= 0.0 and result.win_rate <= 1.0
+    assert len(result.capital_curve) == 399 # length of df - 1
+
+    # Verify trade details
+    trade1 = result.trades[0]
+    assert trade1['exit_reason'] == 'SIGNAL'
+    assert trade1['pnl'] > 0 # Should be a win since it was in an uptrend
+
+    trade2 = result.trades[1]
+    # Trade 2 might hit stop loss before index 350 because it's a downtrend
+    assert trade2['exit_reason'] in ['SIGNAL', 'STOP_LOSS']
+
+    # Assert fields are present
+    assert hasattr(result, 'total_pnl')
+    assert hasattr(result, 'avg_win')
+    assert hasattr(result, 'avg_loss')
+    assert hasattr(result, 'max_drawdown')
+    assert hasattr(result, 'sharpe_ratio')
