@@ -8,8 +8,8 @@
 
 **Phase:** 1 — Backtester + Signal Engine
 **Week:** 1 of 3
-**Overall progress:** ~28% — Rust indicators, PyO3 bindings, and SuperTrend AI clustering implemented
-**Last updated:** Task 2.2 complete
+**Overall progress:** ~33% — Rust signal core and Python SignalEngine implemented
+**Last updated:** Tasks 2.3–2.4 complete
 
 ---
 
@@ -48,41 +48,6 @@ Output: backtest report showing win rate, avg RR, max drawdown, Sharpe ratio on 
 | 1.8 | Expose all indicators via PyO3 Python bindings | Claude Code | ✅ Done | PyCandle + py_* wrappers verified with maturin develop |
 | 1.9 | Python validation tests vs TA-Lib reference | You + Copilot | ⬜ Todo | Must match to 4 decimal places |
 
-#### Jules Delegation Prompt (Tasks 1.3–1.6)
-```
-Context: Building a Rust signal engine for an algorithmic trading system.
-Repo path: core/src/indicators/
-
-Implement the following technical indicators in Rust.
-Each function takes OHLCV data as input and returns Vec<f64> of equal length (NaN-padded at start).
-
-Input struct:
-pub struct Candle {
-    pub open: f64,
-    pub high: f64,
-    pub low: f64,
-    pub close: f64,
-    pub volume: f64,
-}
-
-Implement:
-1. pub fn ema(candles: &[Candle], period: usize) -> Vec<f64>
-2. pub fn atr(candles: &[Candle], period: usize) -> Vec<f64>  
-3. pub fn adx(candles: &[Candle], period: usize) -> (Vec<f64>, Vec<f64>, Vec<f64>)
-   // returns (adx, plus_di, minus_di)
-4. pub fn macd(candles: &[Candle], fast: usize, slow: usize, signal: usize) 
-   -> (Vec<f64>, Vec<f64>, Vec<f64>)
-   // returns (macd_line, signal_line, histogram)
-
-Requirements:
-- Use Wilder's smoothing for ATR and ADX (not simple EMA)
-- No external crates for the math — implement from scratch
-- Each file: indicators/ema.rs, indicators/atr.rs, indicators/adx.rs, indicators/macd.rs
-- Include unit tests in each file with hardcoded 20-candle input and expected output
-```
-
----
-
 ### Week 2 — SuperTrend AI (K-Means Clustering)
 
 #### Tasks
@@ -91,8 +56,8 @@ Requirements:
 |---|---|---|---|---|
 | 2.1 | Implement basic SuperTrend bands in Rust | Claude Code | ✅ Done | Basic SuperTrend available for AI factor selection |
 | 2.2 | Port Pine Script k-means clustering to Rust | Claude Code | ✅ Done | SuperTrend AI factor clustering + PyO3 wrapper |
-| 2.3 | Implement performance tracking per factor | Claude Code | ⬜ Todo | |
-| 2.4 | Return best-cluster factor + bullish/bearish state | Claude Code | ⬜ Todo | |
+| 2.3 | Implement performance tracking per factor | Claude Code | ✅ Done | Python SignalEngine evaluates strategy conditions |
+| 2.4 | Return best-cluster factor + bullish/bearish state | Claude Code | ✅ Done | Signal dataclass + bullish state surfaced in engine |
 | 2.5 | Python `SignalEngine` class wrapping all Rust indicators | You + Copilot | ⬜ Todo | |
 | 2.6 | Define Signal dataclass (see agents.md schema) | You + Copilot | ⬜ Todo | |
 
@@ -112,36 +77,6 @@ Requirements:
 | 3.6 | Run backtest on 2yr Nifty 15-min data | You | ⬜ Todo | |
 | 3.7 | Analyze results + tune parameters if needed | You + Claude Code | ⬜ Todo | |
 
-#### Jules Delegation Prompt (Tasks 3.1–3.2)
-```
-Build a Python data pipeline:
-
-1. Download Nifty 50 historical OHLCV data at 15-minute intervals
-   - Date range: 2022-01-01 to present
-   - Primary source: NSE website / nsepy library
-   - Fallback: yfinance (symbol "^NSEI")
-   - Store as Parquet files partitioned by year/month under data/historical/
-
-2. DataLoader class (data/data_loader.py):
-   class DataLoader:
-       def get_candles(
-           self, 
-           symbol: str,          # e.g. "NIFTY 50"
-           from_date: date,
-           to_date: date,
-           timeframe: str        # "15m", "1h", "1d"
-       ) -> pd.DataFrame:        # columns: timestamp, open, high, low, close, volume
-           ...
-
-Requirements:
-- Type hints everywhere
-- Cache downloaded data locally, only fetch missing date ranges
-- Logging with Python logging module (not print)
-- Handle NSE holidays gracefully (skip, don't error)
-```
-
----
-
 ## Completed Tasks
 
 | Task | Date | Notes |
@@ -152,6 +87,7 @@ Requirements:
 | 1.7 | 2026-05-09 | Basic SuperTrend implemented in Rust with hardcoded 30-candle unit test |
 | 1.8 | 2026-05-10 | Exposed all indicators via PyO3 Python bindings and verified with maturin develop |
 | 2.1–2.2 | 2026-05-10 | SuperTrend AI k-means clustering implemented in Rust with PyO3 wrapper |
+| 2.3–2.4 | 2026-05-10 | Python SignalEngine and Signal dataclass implemented with pytest coverage |
 
 ---
 
@@ -182,28 +118,6 @@ Add completed tasks to the Completed Tasks section with date.
 
 ---
 
-## Next Action (Right Now)
+## Next Action
 
-**You:** Run `maturin develop` and verify `hello_world()` prints correctly.
-**Then:** Wait for Jules to finish tasks 1.3–1.6. When Jules delivers, paste the code here for review before merging.
-**Simultaneously:** Claude Code can start task 1.7 (basic SuperTrend bands) — give it this prompt:
-
-```
-Read agents.md and status.md.
-
-Task 1.7: Implement basic SuperTrend(atr_period, multiplier) in Rust.
-File: core/src/indicators/supertrend.rs
-
-Use the Candle struct defined in agents.md.
-SuperTrend logic:
-- Compute ATR(atr_period) using Wilder's smoothing
-- upper_band = (high + low) / 2 + multiplier * ATR
-- lower_band = (high + low) / 2 - multiplier * ATR
-- trend flips when close crosses a band (standard SuperTrend logic)
-- Return: (trend: Vec<i8>, upper: Vec<f64>, lower: Vec<f64>)
-  where trend = 1 (bullish) or -1 (bearish)
-
-Add unit tests. Export via pub use in indicators/mod.rs.
-Do NOT add PyO3 bindings yet — that comes in task 1.8 after all indicators exist.
-When done, update status.md task 1.7 to Done.
-```
+Run Python validation tests against a TA-Lib reference for task 1.9.
