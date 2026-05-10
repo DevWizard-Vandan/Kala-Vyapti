@@ -13,3 +13,11 @@ pub struct Candle {
     pub close: f64,
     pub volume: f64,
 }
+pub mod ema;
+pub use ema::ema;
+pub mod atr;
+pub use atr::atr;
+pub mod adx;
+pub use adx::adx;
+pub mod macd;
+pub use macd::macd;
