@@ -2,36 +2,22 @@ use super::Candle;
 
 fn rma(series: &[f64], period: usize) -> Vec<f64> {
     let mut result = vec![f64::NAN; series.len()];
-    let mut valid_idx = Vec::new();
 
-    for i in 0..series.len() {
-        if !series[i].is_nan() {
-            valid_idx.push(i);
-        }
-    }
-
-    if valid_idx.len() < period {
+    if series.len() < period || period == 0 {
         return result;
     }
 
-    let start_idx = valid_idx[period - 1];
     let mut sum = 0.0;
     for i in 0..period {
-        sum += series[valid_idx[i]];
+        sum += series[i];
     }
 
     let mut prev_rma = sum / period as f64;
-    result[start_idx] = prev_rma;
+    result[period - 1] = prev_rma;
 
-    let alpha = 1.0 / period as f64;
-    for i in start_idx + 1..series.len() {
-        if !series[i].is_nan() {
-            prev_rma = (series[i] - prev_rma) * alpha + prev_rma;
-            result[i] = prev_rma;
-        } else {
-            // Keep the previous value or just propagate? standard RMA over continuous valid data
-            result[i] = prev_rma;
-        }
+    for i in period..series.len() {
+        prev_rma = ((period as f64 - 1.0) * prev_rma + series[i]) / period as f64;
+        result[i] = prev_rma;
     }
 
     result
@@ -47,18 +33,20 @@ pub fn adx(candles: &[Candle], period: usize) -> (Vec<f64>, Vec<f64>, Vec<f64>) 
         return (adx_vals, pdi_vals, ndi_vals);
     }
 
-    let mut tr = vec![f64::NAN; len];
-    let mut pdm = vec![f64::NAN; len];
-    let mut ndm = vec![f64::NAN; len];
+    let mut tr = vec![0.0; len];
+    let mut pdm = vec![0.0; len];
+    let mut ndm = vec![0.0; len];
+
+    tr[0] = candles[0].high - candles[0].low;
 
     for i in 1..len {
         let hl = candles[i].high - candles[i].low;
-        let hc = (candles[i].high - candles[i-1].close).abs();
-        let lc = (candles[i].low - candles[i-1].close).abs();
+        let hc = (candles[i].high - candles[i - 1].close).abs();
+        let lc = (candles[i].low - candles[i - 1].close).abs();
         tr[i] = hl.max(hc).max(lc);
 
-        let up_move = candles[i].high - candles[i-1].high;
-        let down_move = candles[i-1].low - candles[i].low;
+        let up_move = candles[i].high - candles[i - 1].high;
+        let down_move = candles[i - 1].low - candles[i].low;
 
         if up_move > down_move && up_move > 0.0 {
             pdm[i] = up_move;
@@ -85,7 +73,13 @@ pub fn adx(candles: &[Candle], period: usize) -> (Vec<f64>, Vec<f64>, Vec<f64>) 
         if !smoothed_tr[i].is_nan() && smoothed_tr[i] != 0.0 {
             pdi[i] = 100.0 * smoothed_pdm[i] / smoothed_tr[i];
             ndi[i] = 100.0 * smoothed_ndm[i] / smoothed_tr[i];
-            dx[i] = 100.0 * (pdi[i] - ndi[i]).abs() / (pdi[i] + ndi[i]);
+            dx[i] = if (pdi[i] + ndi[i]) > 0.0 {
+                100.0 * (pdi[i] - ndi[i]).abs() / (pdi[i] + ndi[i])
+            } else {
+                0.0
+            };
+        } else {
+            dx[i] = 0.0;
         }
     }
 
@@ -99,11 +93,26 @@ mod tests {
     use super::*;
 
     fn get_test_candles() -> Vec<Candle> {
-        let opens = vec![10.0, 10.5, 11.0, 10.8, 11.2, 11.5, 12.0, 11.8, 12.2, 12.5, 13.0, 12.8, 13.2, 13.5, 14.0, 13.8, 14.2, 14.5, 15.0, 14.8];
-        let highs = vec![10.5, 11.0, 11.5, 11.2, 11.8, 12.0, 12.5, 12.2, 12.8, 13.0, 13.5, 13.2, 13.8, 14.0, 14.5, 14.2, 14.8, 15.0, 15.5, 15.2];
-        let lows = vec![9.5, 10.0, 10.5, 10.2, 10.8, 11.0, 11.5, 11.2, 11.8, 12.0, 12.5, 12.2, 12.8, 13.0, 13.5, 13.2, 13.8, 14.0, 14.5, 14.2];
-        let closes = vec![10.2, 10.8, 11.2, 11.0, 11.5, 11.8, 12.2, 12.0, 12.5, 12.8, 13.2, 13.0, 13.5, 13.8, 14.2, 14.0, 14.5, 14.8, 15.2, 15.0];
-        let volumes = vec![100.0, 110.0, 120.0, 115.0, 125.0, 130.0, 135.0, 130.0, 140.0, 145.0, 150.0, 145.0, 155.0, 160.0, 165.0, 160.0, 170.0, 175.0, 180.0, 175.0];
+        let opens = vec![
+            10.0, 10.5, 11.0, 10.8, 11.2, 11.5, 12.0, 11.8, 12.2, 12.5, 13.0, 12.8, 13.2, 13.5,
+            14.0, 13.8, 14.2, 14.5, 15.0, 14.8,
+        ];
+        let highs = vec![
+            10.5, 11.0, 11.5, 11.2, 11.8, 12.0, 12.5, 12.2, 12.8, 13.0, 13.5, 13.2, 13.8, 14.0,
+            14.5, 14.2, 14.8, 15.0, 15.5, 15.2,
+        ];
+        let lows = vec![
+            9.5, 10.0, 10.5, 10.2, 10.8, 11.0, 11.5, 11.2, 11.8, 12.0, 12.5, 12.2, 12.8, 13.0,
+            13.5, 13.2, 13.8, 14.0, 14.5, 14.2,
+        ];
+        let closes = vec![
+            10.2, 10.8, 11.2, 11.0, 11.5, 11.8, 12.2, 12.0, 12.5, 12.8, 13.2, 13.0, 13.5, 13.8,
+            14.2, 14.0, 14.5, 14.8, 15.2, 15.0,
+        ];
+        let volumes = vec![
+            100.0, 110.0, 120.0, 115.0, 125.0, 130.0, 135.0, 130.0, 140.0, 145.0, 150.0, 145.0,
+            155.0, 160.0, 165.0, 160.0, 170.0, 175.0, 180.0, 175.0,
+        ];
 
         let mut candles = Vec::new();
         for i in 0..20 {
@@ -124,23 +133,72 @@ mod tests {
         let (adx_vals, pdi_vals, ndi_vals) = adx(&candles, 5);
 
         let expected_adx = vec![
-            f64::NAN, f64::NAN, f64::NAN, f64::NAN, f64::NAN, f64::NAN, f64::NAN, f64::NAN, f64::NAN,
-            66.87509571080142, 68.68016504389713, 64.77342620658928, 64.44996233635622, 64.94993990588064,
-            66.95907855733871, 63.162799743832025, 63.023305605183275, 63.69222454913499, 65.87690627977639, 62.19926588430625
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            13.68421052631578,
+            25.365973072215404,
+            36.19896182664225,
+            38.883647471087215,
+            43.99385540826383,
+            48.85834001061203,
+            54.36150281297805,
+            53.11345325729842,
+            55.08199125436853,
+            57.445577482668725,
+            60.98907260308545,
+            58.29909763628383,
+            59.114019719360215,
+            60.559144663205686,
+            63.38326800274028,
+            60.16780735200956,
         ];
 
         let expected_pdi = vec![
-            f64::NAN, f64::NAN, f64::NAN, f64::NAN, f64::NAN, 36.000000000000014, 38.80000000000001, 31.040000000000013,
-            36.832000000000036, 33.465600000000016, 36.772480000000016, 29.417984000000008, 35.53438720000003,
-            32.427509760000014, 35.94200780800001, 28.75360624640001, 35.002884997120034, 32.002307997696015,
-            35.60184639815681, 28.48147711852545
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            32.00000000000003,
+            29.60000000000001,
+            33.68000000000001,
+            26.944000000000006,
+            33.555200000000035,
+            30.844160000000016,
+            34.67532800000001,
+            27.74026240000001,
+            34.19220992000004,
+            31.353767936000015,
+            35.08301434880001,
+            28.06641147904001,
+            34.453129183232036,
+            31.562503346585615,
+            35.25000267726849,
+            28.20000214181479,
         ];
 
         let expected_ndi = vec![
-            f64::NAN, f64::NAN, f64::NAN, f64::NAN, f64::NAN, 6.000000000000014, 4.800000000000011, 9.840000000000023,
-            7.872000000000019, 6.297600000000016, 5.038080000000013, 10.030464000000025, 8.02437120000002,
-            6.419496960000017, 5.135597568000013, 10.108478054400024, 8.08678244352002, 6.469425954816016,
-            5.175540763852813, 10.140432611082264
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            f64::NAN,
+            6.000000000000014,
+            4.800000000000011,
+            3.8400000000000087,
+            9.072000000000022,
+            7.257600000000017,
+            5.806080000000014,
+            4.644864000000011,
+            9.715891200000023,
+            7.772712960000019,
+            6.218170368000016,
+            4.974536294400013,
+            9.979629035520023,
+            7.98370322841602,
+            6.386962582732816,
+            5.109570066186253,
+            10.087656052949017,
         ];
 
         assert_eq!(adx_vals.len(), expected_adx.len());
