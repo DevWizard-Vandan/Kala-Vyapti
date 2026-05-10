@@ -8,8 +8,8 @@
 
 **Phase:** 1 — Backtester + Signal Engine
 **Week:** 1 of 3
-**Overall progress:** ~22% — Rust crate scaffolded, PyO3 indicator bindings verified
-**Last updated:** Task 1.8 complete
+**Overall progress:** ~28% — Rust indicators, PyO3 bindings, and SuperTrend AI clustering implemented
+**Last updated:** Task 2.2 complete
 
 ---
 
@@ -89,8 +89,8 @@ Requirements:
 
 | # | Task | Owner | Status | Notes |
 |---|---|---|---|---|
-| 2.1 | Implement basic SuperTrend bands in Rust | Claude Code | ⬜ Todo | |
-| 2.2 | Port Pine Script k-means clustering to Rust | Claude Code | ⬜ Todo | Hardest task in Phase 1 |
+| 2.1 | Implement basic SuperTrend bands in Rust | Claude Code | ✅ Done | Basic SuperTrend available for AI factor selection |
+| 2.2 | Port Pine Script k-means clustering to Rust | Claude Code | ✅ Done | SuperTrend AI factor clustering + PyO3 wrapper |
 | 2.3 | Implement performance tracking per factor | Claude Code | ⬜ Todo | |
 | 2.4 | Return best-cluster factor + bullish/bearish state | Claude Code | ⬜ Todo | |
 | 2.5 | Python `SignalEngine` class wrapping all Rust indicators | You + Copilot | ⬜ Todo | |
@@ -151,6 +151,7 @@ Requirements:
 | 1.3–1.6 | 2026-05-10 | Fixed ATR/ADX from Jules PR |
 | 1.7 | 2026-05-09 | Basic SuperTrend implemented in Rust with hardcoded 30-candle unit test |
 | 1.8 | 2026-05-10 | Exposed all indicators via PyO3 Python bindings and verified with maturin develop |
+| 2.1–2.2 | 2026-05-10 | SuperTrend AI k-means clustering implemented in Rust with PyO3 wrapper |
 
 ---
 

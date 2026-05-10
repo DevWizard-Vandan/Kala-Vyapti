@@ -1,8 +1,10 @@
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 
 pub mod clustering;
 pub mod indicators;
 
+use clustering::supertrend_ai;
 use indicators::{adx, atr, ema, macd, supertrend, Candle};
 
 /// Python-facing OHLCV candle used by PyO3 indicator bindings.
@@ -99,6 +101,39 @@ fn py_supertrend(
     supertrend(&candles, atr_period, multiplier)
 }
 
+/// Calculate SuperTrend AI factor selection and final bands for Python candles.
+#[pyfunction]
+fn py_supertrend_ai(
+    py: Python<'_>,
+    candles: Vec<PyCandle>,
+    atr_period: usize,
+    min_mult: f64,
+    max_mult: f64,
+    step: f64,
+    perf_alpha: f64,
+    from_cluster: usize,
+) -> PyResult<PyObject> {
+    let candles = py_candles_to_candles(candles);
+    let result = supertrend_ai(
+        &candles,
+        atr_period,
+        min_mult,
+        max_mult,
+        step,
+        perf_alpha,
+        from_cluster,
+    );
+
+    let dict = PyDict::new_bound(py);
+    dict.set_item("trend", result.trend)?;
+    dict.set_item("upper", result.upper)?;
+    dict.set_item("lower", result.lower)?;
+    dict.set_item("selected_factor", result.selected_factor)?;
+    dict.set_item("cluster_perfs", result.cluster_perfs.to_vec())?;
+
+    Ok(dict.into())
+}
+
 /// Python module for the Kala-Vyapti Rust signal engine.
 #[pymodule]
 fn kala_vyapti_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -109,5 +144,6 @@ fn kala_vyapti_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_adx, m)?)?;
     m.add_function(wrap_pyfunction!(py_macd, m)?)?;
     m.add_function(wrap_pyfunction!(py_supertrend, m)?)?;
+    m.add_function(wrap_pyfunction!(py_supertrend_ai, m)?)?;
     Ok(())
 }
