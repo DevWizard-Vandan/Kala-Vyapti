@@ -23,10 +23,14 @@ class BacktestResult:
 
 class BacktestEngine:
     def __init__(self, data_loader: 'DataLoader', signal_engine: 'SignalEngine',
-                 initial_capital: float = 500000.0):
+                 initial_capital: float = 500000.0,
+                 brokerage_per_trade: float = 40.0,
+                 stop_loss_pct: float = 0.40):
         self.data_loader = data_loader
         self.signal_engine = signal_engine
         self.initial_capital = initial_capital
+        self.brokerage_per_trade = brokerage_per_trade
+        self.stop_loss_pct = stop_loss_pct
 
     def _position_size(self, capital: float, entry_price: float) -> int:
         return math.floor((capital * 0.02) / entry_price)
@@ -47,17 +51,17 @@ class BacktestEngine:
         trades = []
 
         position = None
+        candles_list = df.to_dict('records')
 
         # Simulated chronological walk
-        for i in range(1, len(df)):
-            # Up to current candle index 'i', inclusive or exclusive based on requirement.
-            # SignalEngine should evaluate on completed candles. We pass history up to i.
-            history_df = df.iloc[:i]
+        for i in range(1, len(candles_list)):
+            # SignalEngine should evaluate on completed candles only. We pass history up to i.
+            history_candles = candles_list[:i]
 
-            current_candle = history_df.iloc[-1]
-            next_candle = df.iloc[i]
+            current_candle = candles_list[i - 1]
+            next_candle = candles_list[i]
 
-            signal = self.signal_engine.evaluate(history_df, symbol, timeframe)
+            signal = self.signal_engine.evaluate(history_candles)
 
             # Position Management
             if position:
@@ -69,7 +73,7 @@ class BacktestEngine:
                         exit_price = next_candle['open']
 
                     pnl = (exit_price - position['entry_price']) * position['units']
-                    pnl -= 40 # Brokerage 20 in + 20 out
+                    pnl -= self.brokerage_per_trade
                     capital += (position['entry_price'] * position['units']) + pnl
                     trades.append({
                         'entry_time': position['entry_time'],
@@ -83,10 +87,10 @@ class BacktestEngine:
 
                 # 2. Check Exit Signal
                 elif signal.action == "EXIT":
-                    # Exit at close of the candle where signal triggered (next_candle close)
-                    exit_price = next_candle['close']
+                    # Exit at next candle open to avoid lookahead bias
+                    exit_price = next_candle['open']
                     pnl = (exit_price - position['entry_price']) * position['units']
-                    pnl -= 40 # Brokerage
+                    pnl -= self.brokerage_per_trade
                     capital += (position['entry_price'] * position['units']) + pnl
                     trades.append({
                         'entry_time': position['entry_time'],
@@ -108,7 +112,7 @@ class BacktestEngine:
                         'entry_time': next_candle['timestamp'],
                         'entry_price': entry_price,
                         'units': units,
-                        'stop_loss_price': entry_price * 0.60
+                        'stop_loss_price': entry_price * (1 - self.stop_loss_pct)
                     }
 
             # End of step, record capital (including unrealized if any, but we'll just track realized to keep simple)
@@ -120,10 +124,10 @@ class BacktestEngine:
 
         # Force exit at the end if position is still open
         if position:
-            last_candle = df.iloc[-1]
+            last_candle = candles_list[-1]
             exit_price = last_candle['close']
             pnl = (exit_price - position['entry_price']) * position['units']
-            pnl -= 40
+            pnl -= self.brokerage_per_trade
             capital += (position['entry_price'] * position['units']) + pnl
             trades.append({
                 'entry_time': position['entry_time'],

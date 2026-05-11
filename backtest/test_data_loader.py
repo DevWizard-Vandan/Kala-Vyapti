@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 from datetime import date, datetime, timedelta
-import pytz
+from zoneinfo import ZoneInfo
 from backtest.data_loader import DataLoader
 import shutil
 import os
@@ -20,8 +20,8 @@ def test_get_candles_columns_and_timezone(temp_cache_dir, mocker):
     # Mock yfinance to return a simple dataframe
     mock_df = pd.DataFrame({
         'timestamp': [
-            datetime(2023, 1, 2, 9, 15, tzinfo=pytz.timezone('Asia/Kolkata')),
-            datetime(2023, 1, 2, 9, 30, tzinfo=pytz.timezone('Asia/Kolkata'))
+            datetime(2023, 1, 2, 9, 15, tzinfo=ZoneInfo('Asia/Kolkata')),
+            datetime(2023, 1, 2, 9, 30, tzinfo=ZoneInfo('Asia/Kolkata'))
         ],
         'open': [18000.0, 18010.0],
         'high': [18020.0, 18025.0],
@@ -51,8 +51,8 @@ def test_caching_behavior(temp_cache_dir, mocker):
 
     mock_df = pd.DataFrame({
         'timestamp': [
-            datetime(2023, 1, 2, 9, 15, tzinfo=pytz.timezone('Asia/Kolkata')),
-            datetime(2023, 1, 2, 9, 30, tzinfo=pytz.timezone('Asia/Kolkata'))
+            datetime(2023, 1, 2, 9, 15, tzinfo=ZoneInfo('Asia/Kolkata')),
+            datetime(2023, 1, 2, 9, 30, tzinfo=ZoneInfo('Asia/Kolkata'))
         ],
         'open': [18000.0, 18010.0],
         'high': [18020.0, 18025.0],

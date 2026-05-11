@@ -8,3 +8,5 @@ streamlit
 python-telegram-bot
 ta-lib
 pytest
+yfinance>=0.2.40
+pytest-mock>=3.14.0

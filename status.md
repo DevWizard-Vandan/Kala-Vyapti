@@ -9,7 +9,7 @@
 **Phase:** 1 — Backtester + Signal Engine
 **Week:** 1 of 3
 **Overall progress:** ~33% — Rust signal core and Python SignalEngine implemented
-**Last updated:** Tasks 2.3–2.4 complete
+**Last updated:** PR #2 fixes applied - backtesting framework corrected
 
 ---
 
@@ -88,6 +88,7 @@ Output: backtest report showing win rate, avg RR, max drawdown, Sharpe ratio on 
 | 1.8 | 2026-05-10 | Exposed all indicators via PyO3 Python bindings and verified with maturin develop |
 | 2.1–2.2 | 2026-05-10 | SuperTrend AI k-means clustering implemented in Rust with PyO3 wrapper |
 | 2.3–2.4 | 2026-05-10 | Python SignalEngine and Signal dataclass implemented with pytest coverage |
+| PR #2 fixes | 2026-05-11 | PR #2 fixes applied - backtesting framework corrected |
 
 ---
 

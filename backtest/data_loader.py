@@ -1,10 +1,13 @@
 import logging
-from datetime import date, timedelta
+import re
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 import pandas as pd
 import yfinance as yf
 
 logger = logging.getLogger(__name__)
+IST = ZoneInfo('Asia/Kolkata')
 
 class DataLoader:
     def __init__(self, cache_dir: str = "data/historical"):
@@ -72,8 +75,11 @@ class DataLoader:
             final_df = final_df.drop(columns=['month'])
 
         # Filter to exact requested range
-        from_datetime = pd.to_datetime(from_date).tz_localize('Asia/Kolkata')
-        to_datetime = (pd.to_datetime(to_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)).tz_localize('Asia/Kolkata')
+        from_datetime = pd.Timestamp(datetime.combine(from_date, time.min, tzinfo=IST))
+        to_datetime = pd.Timestamp(
+            datetime.combine(to_date + timedelta(days=1), time.min, tzinfo=IST)
+            - timedelta(seconds=1)
+        )
 
         final_df = final_df[(final_df['timestamp'] >= from_datetime) & (final_df['timestamp'] <= to_datetime)]
 
@@ -91,23 +97,38 @@ class DataLoader:
     def _fetch_from_yfinance(self, symbol: str, from_date: date, to_date: date, timeframe: str) -> pd.DataFrame:
         logger.info(f"Fetching from yfinance: {symbol} from {from_date} to {to_date}")
 
-        end_date = to_date + timedelta(days=1)
         yf_symbol = "^NSEI" if symbol == "NIFTY 50" else symbol
+        all_dfs = []
+        chunk_start = from_date
 
-        ticker = yf.Ticker(yf_symbol)
-        df = ticker.history(
-            start=from_date.strftime('%Y-%m-%d'),
-            end=end_date.strftime('%Y-%m-%d'),
-            interval=timeframe
-        )
+        while chunk_start <= to_date:
+            chunk_end = min(chunk_start + timedelta(days=55), to_date)
+            end_date = chunk_end + timedelta(days=1)
 
-        if df.empty:
+            ticker = yf.Ticker(yf_symbol)
+            df = ticker.history(
+                start=chunk_start.strftime('%Y-%m-%d'),
+                end=end_date.strftime('%Y-%m-%d'),
+                interval=timeframe
+            )
+
+            if not df.empty:
+                all_dfs.append(self._normalize_yfinance_df(df))
+
+            chunk_start = chunk_end + timedelta(days=1)
+
+        if not all_dfs:
             return pd.DataFrame(columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 
+        combined_df = pd.concat(all_dfs, ignore_index=True)
+        return combined_df.drop_duplicates(subset=['timestamp']).sort_values('timestamp').reset_index(drop=True)
+
+    def _normalize_yfinance_df(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Normalize a yfinance OHLCV response into the backtester candle schema."""
         if df.index.tz is None:
-            df.index = df.index.tz_localize('UTC').tz_convert('Asia/Kolkata')
+            df.index = df.index.tz_localize('UTC').tz_convert(IST)
         else:
-            df.index = df.index.tz_convert('Asia/Kolkata')
+            df.index = df.index.tz_convert(IST)
 
         df = df.reset_index()
         df = df.rename(columns={
@@ -131,7 +152,8 @@ class DataLoader:
         return df
 
     def _cache_path(self, symbol: str, year: int, month: int) -> Path:
-        symbol_dir = self.cache_dir / symbol.replace(" ", "_")
+        safe_symbol = re.sub(r'[^\w\-]', '_', symbol)
+        symbol_dir = self.cache_dir / safe_symbol
         symbol_dir.mkdir(parents=True, exist_ok=True)
         return symbol_dir / f"{year}-{month:02d}.parquet"
 

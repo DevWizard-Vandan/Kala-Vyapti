@@ -1,9 +1,9 @@
 import pytest
 import pandas as pd
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 from backtest.engine import BacktestEngine, BacktestResult
 from engine.signals.models import Signal
-import pytz
 
 class MockDataLoader:
     def __init__(self, df):
@@ -16,14 +16,14 @@ class MockSignalEngine:
     def __init__(self, action_map):
         self.action_map = action_map
 
-    def evaluate(self, history_df, symbol, timeframe):
-        last_idx = len(history_df) - 1
+    def evaluate(self, candles):
+        last_idx = len(candles) - 1
         action = self.action_map.get(last_idx, "NONE")
         return Signal(
-            timestamp=history_df.iloc[-1]['timestamp'],
-            symbol=symbol,
+            timestamp=candles[-1]['timestamp'],
+            symbol="NIFTY 50",
             action=action,
-            timeframe=timeframe,
+            timeframe="15m",
             adx=0.0,
             dmi_plus=0.0,
             dmi_minus=0.0,
@@ -35,7 +35,7 @@ class MockSignalEngine:
         )
 
 def generate_synthetic_data(num_candles=400):
-    start_time = datetime(2023, 1, 1, 9, 15, tzinfo=pytz.timezone('Asia/Kolkata'))
+    start_time = datetime(2023, 1, 1, 9, 15, tzinfo=ZoneInfo('Asia/Kolkata'))
 
     timestamps = []
     opens = []
