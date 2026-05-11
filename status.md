@@ -69,11 +69,11 @@ Output: backtest report showing win rate, avg RR, max drawdown, Sharpe ratio on 
 
 | # | Task | Owner | Status | Notes |
 |---|---|---|---|---|
-| 3.1 | NSE historical data downloader (15-min OHLCV) | Jules | ⬜ Todo | Parquet storage |
-| 3.2 | `DataLoader` class with get_candles() API | Jules | ⬜ Todo | |
-| 3.3 | Backtesting engine core loop | Claude Code | ⬜ Todo | |
-| 3.4 | Position sizing + brokerage simulation | Claude Code | ⬜ Todo | ₹20/order Zerodha |
-| 3.5 | Performance report generator | Copilot | ⬜ Todo | |
+| 3.1 | NSE historical data downloader (15-min OHLCV) | Jules | ✅ Done | Parquet storage |
+| 3.2 | `DataLoader` class with get_candles() API | Jules | ✅ Done | |
+| 3.3 | Backtesting engine core loop | Claude Code | ✅ Done | |
+| 3.4 | Position sizing + brokerage simulation | Claude Code | ✅ Done | ₹20/order Zerodha |
+| 3.5 | Performance report generator | Copilot | ✅ Done | |
 | 3.6 | Run backtest on 2yr Nifty 15-min data | You | ⬜ Todo | |
 | 3.7 | Analyze results + tune parameters if needed | You + Claude Code | ⬜ Todo | |
 
