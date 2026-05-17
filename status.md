@@ -18,7 +18,7 @@
 | Phase | Name | Duration | Status |
 |---|---|---|---|
 | 1 | Backtester + Signal Engine | 3 weeks | 🔄 In Progress |
-| 2 | Paper Trading + Journal | 4 weeks | ⏳ Not Started |
+| 2 | Paper Trading + Journal | 4 weeks | 🔄 In Progress |
 | 3 | AI Brain + Risk Gate | 4 weeks | ⏳ Not Started |
 | 4 | Live Execution (1 lot) | Ongoing | ⏳ Not Started |
 
@@ -122,6 +122,12 @@ When blocked, change to `🚫 Blocked` and add to the Blockers section.
 Add completed tasks to the Completed Tasks section with date.
 
 ---
+
+## Completed Tasks
+
+| Task | Date | Notes |
+|---|---|---|
+| Phase 2 tasks started | 2026-05-18 | Built Kite WebSocket feed (`engine/data/kite_feed.py`), `CandleBuilder` (`engine/data/candle_builder.py`), `Trade` dataclass (`engine/execution/models.py`), and `PaperTrader` (`engine/execution/paper_trader.py`). Stubbed `RiskGate` (`engine/risk/risk_gate.py`). Tests run and passing. |
 
 ## Next Action
 
