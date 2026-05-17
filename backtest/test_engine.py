@@ -34,7 +34,7 @@ class MockSignalEngine:
             confidence=1.0
         )
 
-def generate_synthetic_data(num_candles=400):
+def generate_synthetic_data(num_candles=500):
     start_time = datetime(2023, 1, 1, 9, 15, tzinfo=ZoneInfo('Asia/Kolkata'))
 
     timestamps = []
@@ -49,7 +49,7 @@ def generate_synthetic_data(num_candles=400):
         timestamps.append(start_time + timedelta(minutes=15 * i))
 
         # Simple trend + reversal
-        if i < 200:
+        if i < 380:
             # Uptrend
             open_price = current_price
             close_price = current_price + 2.0
@@ -79,16 +79,17 @@ def generate_synthetic_data(num_candles=400):
     })
 
 def test_backtest_engine_basic_run():
-    df = generate_synthetic_data(400)
+    df = generate_synthetic_data(500)
     data_loader = MockDataLoader(df)
 
-    # We want to buy at index 10, exit at index 150 (uptrend -> win)
-    # Buy at index 250, exit at index 350 (downtrend -> loss/stop loss)
+    # Signals are emitted after the 300-candle warmup.
+    # Buy at index 310, exit at index 360 (uptrend -> win)
+    # Buy at index 410, exit at index 460 (downtrend -> loss/stop loss)
     action_map = {
-        10: "BUY",
-        150: "EXIT",
-        250: "BUY",
-        350: "EXIT"
+        310: "BUY",
+        360: "EXIT",
+        410: "BUY",
+        460: "EXIT"
     }
     signal_engine = MockSignalEngine(action_map)
 
@@ -99,7 +100,7 @@ def test_backtest_engine_basic_run():
     assert isinstance(result, BacktestResult)
     assert result.total_trades == 2
     assert result.win_rate >= 0.0 and result.win_rate <= 1.0
-    assert len(result.capital_curve) == 399 # length of df - 1
+    assert len(result.capital_curve) == 199 # length of df - 301 warmup
 
     # Verify trade details
     trade1 = result.trades[0]

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
-import math
+import logging
 import pandas as pd
 import numpy as np
 from typing import TYPE_CHECKING, Any
@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from backtest.data_loader import DataLoader
     from engine.signals.signal_engine import SignalEngine
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class BacktestResult:
@@ -25,15 +27,25 @@ class BacktestEngine:
     def __init__(self, data_loader: 'DataLoader', signal_engine: 'SignalEngine',
                  initial_capital: float = 500000.0,
                  brokerage_per_trade: float = 40.0,
-                 stop_loss_pct: float = 0.40):
+                 stop_loss_pct: float = 0.40,
+                 position_size_pct: float = 0.02):
         self.data_loader = data_loader
         self.signal_engine = signal_engine
         self.initial_capital = initial_capital
         self.brokerage_per_trade = brokerage_per_trade
         self.stop_loss_pct = stop_loss_pct
+        self.position_size_pct = position_size_pct
 
     def _position_size(self, capital: float, entry_price: float) -> int:
-        return math.floor((capital * 0.02) / entry_price)
+        estimated_premium = self._estimated_option_premium(entry_price)
+        units = int((capital * self.position_size_pct) / estimated_premium)
+        return max(1, units)
+
+    def _estimated_option_premium(self, spot_price: float) -> float:
+        """Estimate ATM option premium from spot for daily proxy backtests."""
+        # NOTE: Daily spot data proxy. Premiums estimated at 0.3% of spot price.
+        # Replace with actual option chain data when Kite API is connected.
+        return spot_price * 0.003
 
     def run(self, symbol: str, from_date: date, to_date: date,
             timeframe: str = "15m") -> BacktestResult:
@@ -54,23 +66,27 @@ class BacktestEngine:
         candles_list = df.to_dict('records')
 
         # Simulated chronological walk
-        for i in range(1, len(candles_list)):
-            # SignalEngine should evaluate on completed candles only. We pass history up to i.
+        for i in range(301, len(candles_list)):
+            # SignalEngine evaluates completed candles through bar i-1.
+            # Entries and exits execute at bar i open to avoid lookahead bias.
             history_candles = candles_list[:i]
 
             current_candle = candles_list[i - 1]
             next_candle = candles_list[i]
 
             signal = self.signal_engine.evaluate(history_candles)
+            logger.debug(f"Step {i}: signal={signal.action}, position={'open' if position else 'none'}")
 
             # Position Management
             if position:
                 # 1. Check Stop Loss
-                if next_candle['low'] <= position['stop_loss_price']:
+                low_premium = self._estimated_option_premium(next_candle['low'])
+                open_premium = self._estimated_option_premium(next_candle['open'])
+                if low_premium <= position['stop_loss_price']:
                     exit_price = position['stop_loss_price']
                     # If open gaps down below SL, we exit at open price
-                    if next_candle['open'] < exit_price:
-                        exit_price = next_candle['open']
+                    if open_premium < exit_price:
+                        exit_price = open_premium
 
                     pnl = (exit_price - position['entry_price']) * position['units']
                     pnl -= self.brokerage_per_trade
@@ -88,7 +104,7 @@ class BacktestEngine:
                 # 2. Check Exit Signal
                 elif signal.action == "EXIT":
                     # Exit at next candle open to avoid lookahead bias
-                    exit_price = next_candle['open']
+                    exit_price = self._estimated_option_premium(next_candle['open'])
                     pnl = (exit_price - position['entry_price']) * position['units']
                     pnl -= self.brokerage_per_trade
                     capital += (position['entry_price'] * position['units']) + pnl
@@ -104,8 +120,9 @@ class BacktestEngine:
 
             # If no position, check for ENTRY
             if not position and signal.action == "BUY":
-                entry_price = next_candle['open']
-                units = self._position_size(capital, entry_price)
+                spot_entry_price = next_candle['open']
+                entry_price = self._estimated_option_premium(spot_entry_price)
+                units = self._position_size(capital, spot_entry_price)
                 if units > 0:
                     capital -= (entry_price * units) # Cost of acquiring units
                     position = {
@@ -114,18 +131,21 @@ class BacktestEngine:
                         'units': units,
                         'stop_loss_price': entry_price * (1 - self.stop_loss_pct)
                     }
+                    logger.debug(f"Step {i}: entered position units={units}, entry_price={entry_price}")
+                else:
+                    logger.debug(f"Step {i}: entry skipped, position size is 0 at entry_price={entry_price}")
 
             # End of step, record capital (including unrealized if any, but we'll just track realized to keep simple)
             # Actually, standard is realized capital curve + value of position
             current_value = capital
             if position:
-                current_value += position['units'] * next_candle['close']
+                current_value += position['units'] * self._estimated_option_premium(next_candle['close'])
             capital_curve.append(current_value)
 
         # Force exit at the end if position is still open
         if position:
             last_candle = candles_list[-1]
-            exit_price = last_candle['close']
+            exit_price = self._estimated_option_premium(last_candle['close'])
             pnl = (exit_price - position['entry_price']) * position['units']
             pnl -= self.brokerage_per_trade
             capital += (position['entry_price'] * position['units']) + pnl

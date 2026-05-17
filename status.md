@@ -9,7 +9,7 @@
 **Phase:** 1 — Backtester + Signal Engine
 **Week:** 1 of 3
 **Overall progress:** ~33% — Rust signal core and Python SignalEngine implemented
-**Last updated:** PR #2 fixes applied - backtesting framework corrected
+**Last updated:** Premium proxy sizing fixed. Daily backtest results: Total trades 7, Win rate 42.9%, Total PnL Rs.-99, Avg win Rs.246, Avg loss Rs.-209, Max drawdown 0.1%, Sharpe ratio -0.73
 
 ---
 
@@ -89,6 +89,10 @@ Output: backtest report showing win rate, avg RR, max drawdown, Sharpe ratio on 
 | 2.1–2.2 | 2026-05-10 | SuperTrend AI k-means clustering implemented in Rust with PyO3 wrapper |
 | 2.3–2.4 | 2026-05-10 | Python SignalEngine and Signal dataclass implemented with pytest coverage |
 | PR #2 fixes | 2026-05-11 | PR #2 fixes applied - backtesting framework corrected |
+| DataLoader source update | 2026-05-17 | DataLoader updated: Kite API for 15m, yfinance daily as fallback |
+| Timeframe-aware thresholds | 2026-05-17 | Timeframe-aware thresholds added. Daily backtest results: Total trades 0, Win rate 0.0%, Total PnL Rs.0, Avg win Rs.0, Avg loss Rs.0, Max drawdown 0.0%, Sharpe ratio 0.00 |
+| Backtest warmup loop fix | 2026-05-17 | Backtest loop now starts at i=301 and evaluates candles through bar i-1 before executing at bar i open. Verification: Total trades 0, Win rate 0.0%, Total PnL Rs.0, Avg win Rs.0, Avg loss Rs.0, Max drawdown 0.0%, Sharpe ratio 0.00. SignalEngine emits BUY signals, but daily Nifty spot proxy entries size to 0 under the 2% capital cap. |
+| Premium proxy sizing fix | 2026-05-17 | Premium proxy sizing fixed. Daily backtest results: Total trades 7, Win rate 42.9%, Total PnL Rs.-99, Avg win Rs.246, Avg loss Rs.-209, Max drawdown 0.1%, Sharpe ratio -0.73. Trades: 2023-05-05 -> 2023-05-18 Rs.53 SIGNAL; 2023-05-30 -> 2023-06-05 Rs.-37 SIGNAL; 2023-06-08 -> 2023-06-12 Rs.-110 SIGNAL; 2023-07-03 -> 2023-07-26 Rs.213 SIGNAL; 2023-09-15 -> 2023-09-22 Rs.-244 SIGNAL; 2023-12-04 -> 2024-01-03 Rs.472 SIGNAL; 2024-09-27 -> 2024-10-04 Rs.-446 SIGNAL. |
 
 ---
 

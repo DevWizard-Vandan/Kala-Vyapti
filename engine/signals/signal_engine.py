@@ -16,11 +16,34 @@ from kala_vyapti_core import (
 from .models import Signal
 
 
+THRESHOLDS = {
+    "15m": {
+        "adx_min": 25,
+        "dmi_plus_min": 21,
+        "dmi_minus_max": 15,
+        "macd_hist_min": 5,
+    },
+    "1h": {
+        "adx_min": 25,
+        "dmi_plus_min": 21,
+        "dmi_minus_max": 20,
+        "macd_hist_min": 0,
+    },
+    "1d": {
+        "adx_min": 25,
+        "dmi_plus_min": 21,
+        "dmi_minus_max": 25,
+        "macd_hist_min": 0,
+    },
+}
+
+
 class SignalEngine:
     def __init__(self, symbol: str, timeframe: str = "15m") -> None:
         """Initialize the signal engine for one symbol/timeframe stream."""
         self.symbol = symbol
         self.timeframe = timeframe
+        self.thresholds = THRESHOLDS.get(timeframe, THRESHOLDS["15m"])
         self.position_open = False
 
     def evaluate(self, candles: list[dict]) -> Signal:
@@ -69,12 +92,12 @@ class SignalEngine:
         supertrend_ai_bullish = latest_supertrend_ai == 1
 
         conditions = [
-            latest_adx > 25.0,
+            latest_adx > self.thresholds["adx_min"],
             latest_plus_di > latest_minus_di,
-            latest_minus_di < 15.0,
-            latest_plus_di > 21.0,
+            latest_minus_di < self.thresholds["dmi_minus_max"],
+            latest_plus_di > self.thresholds["dmi_plus_min"],
             ema_aligned,
-            latest_macd_hist > 5.0,
+            latest_macd_hist > self.thresholds["macd_hist_min"],
             supertrend_ai_bullish,
         ]
         confidence = sum(conditions) / 7.0
